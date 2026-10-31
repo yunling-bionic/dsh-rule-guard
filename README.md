@@ -127,13 +127,24 @@ Agent 在长任务中容易产生范围外动作：改动未被要求的文件�
 
 示例见 [examples/AGENTS.md](examples/AGENTS.md)。未提供规则文件时，仅按当前目标判断。
 
-**首次安装提示**：插件首次加载时会在 `rule-guard.log` 写入一条 `first-run-notice`，
-并生成 `INSTALL-NOTICE.txt`，中英文说明上述两种自定义规则的方式：
+**首次安装提示**：插件首次加载时，会在标准插件数据目录生成 `RULES.md` 与 `INSTALL-NOTICE.txt`，
+向 `rule-guard.log` 记一条 `first-run-notice`，并通过 stderr 输出中英文提示：
+
+```
+标准插件数据目录（与 dshHomePath('rule-guard') 等价）
+  Windows   %APPDATA%\dsh-desktop\harness\rule-guard\
+  Linux/mac ~/.dsh/rule-guard/
+      RULES.md            复核机制的通用规则（首次生成；用户改过则不覆盖）
+      INSTALL-NOTICE.txt  中英文提示原文
+      .first-run-done     首次标记（存在即不再提示）
+```
 
 > 可以自己定规则，方式两种：自己手动编辑规则文件，或根据需要直接让 AI 改规则文件。
 >
 > You can define your own rules. Two ways: edit the rule file by hand, or simply ask the AI
 > to modify that rule file as needed.
+
+规则文件放在数据目录而非安装包内，因此**升级插件不会覆盖用户改动**。
 
 ## 七、日志
 
