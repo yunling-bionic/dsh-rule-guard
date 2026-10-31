@@ -1,92 +1,106 @@
 # dsh-rule-guard
 
-> A DSH (DeepSeek Harness) plugin that reviews every code-modifying tool call against your project rules and the current goal **before** it executes. If the change breaks a rule or drifts off-task, the call is denied and the model is told exactly what to fix.
+> A DSH (DeepSeek Harness) plugin that reviews every side-effecting tool call against the project rules and the current goal before it executes, and denies anything outside that scope.
 
-给 DeepSeek Harness 加一道「改代码前的二次复核」：每次写文件前，先拿**项目规则 + 你最近一条指令 + 待执行内容**过一遍模型，不合规直接拦下并给出修正建议。
+在工具真正执行之前插入一次复核：取**项目规则 + 当前目标 + 待执行动作**，判断该动作是否在当前目标内；不在则拒绝执行，并把违反的目标与修正建议回给模型。
 
 仓库：<https://github.com/yunling-bionic/dsh-rule-guard>
 
-## 当前状态（v0.4.0）：它没有放行分支，模糊指令会被直接拒
+- 版本：0.4.0
+- 依赖：DeepSeek Harness ≥ 0.2.x
+- 许可：MIT
 
-这一版把判据换掉了：**不再问"这一步写不写文件"，只问"这一步在不在你当前的目标里"。**
-技术风险、是否写文件都不再是判据。换来的是更严的边界，代价是**它不会替你猜意图**。
+## 一、设计目标
 
-```
-送审   行为类工具（写文件 / shell 非只读 / 装包 / 起服务 / 网络 /
-       派子代理 / 定时任务 / 桌面操作 / office 落盘）
-       未知工具默认送审；读工作区外也送审
-免审   纯读取且在工作区内；只读 shell 白名单（Get-Content、git log 等）
-失败   复核失败、输出不可解析、判决冲突 → 一律拒绝（不 fail-open）
-豁免   无。failMode / allowTools / reviewReadsOutside / readRoots / 日志路径覆盖 全部删除
-缓存   只复用「拒绝」，按会话隔离，10 分钟
-```
+Agent 在长任务中容易产生范围外动作：改动未被要求的文件、顺手重构、把构建产物一并纳入修改、偏离当前目标。
 
-**要它放行，把三件事说清：做什么、在哪、为什么。**
+本插件在动作落盘之前插入一次独立复核，将这类偏离挡在执行之前。复核由当前会话的模型完成，判定口径与项目规则文件一致。
 
-```
-✅ "把 E:\SK\视觉\vision_mem_raw.py 里的 --win-sec 默认值改成 60，
-    因为瞬时窗口按 60 秒算"
-❌ "继续" / "优化一下" / "看着办"     → 目标不含具体改动 → 拒
-```
+## 二、判定原则
 
-**被拒时看 `rule-guard.log`**：每条是 JSON，`event=deny` 里有
+判据只有一条：**这一动作是否在当前目标之内。**
 
-```
-ts        时间
-tool      工具名（write / edit / pwsh / …）
-paths     涉及的文件（数组）
-digest    参数摘要（截断，足以判断你当时想干什么）
-reason    违反了哪一条目标（点名）
-fix       建议怎么改
-```
+以下内容不作为判据：
+- 是否写文件
+- 技术风险高低
+- 代码风格差异
 
-**要放宽力度也可以，但得明说**——它没有开关可调，放宽的唯一方式是在指令里写清授权范围：
+判决口径为 fail-closed：
 
-```
-"这一轮允许改 视觉/ 下任何文件，不必逐条确认"
-"这次只读操作，不需要复核"
-```
+| 情形 | 处理 |
+|---|---|
+| 明确不在目标内 | 拒绝 |
+| 复核失败（模型调用异常） | 拒绝 |
+| 复核输出不可解析 | 拒绝 |
+| 多路判决冲突 | 拒绝 |
 
-说清楚了，它就不再拦；说不清楚，它就拒。这是刻意的：**模糊授权等于没授权。**
+本版本不含放行分支（fail-open），亦不提供任何豁免开关。因此**表述模糊的指令会被直接拒绝**，这是设计取舍：模糊授权不等于授权。
 
-## 解决什么问题
+## 三、送审范围
 
-Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构、把产物文件一起改了、跑偏目标。
+**送审（有副作用的动作）**
 
-`dsh-rule-guard` 在工具真正执行前插入一次复核，把"偏离"挡在落盘之前。
+- 文件写入与编辑（`write` / `edit` / `str_replace_editor` / 脚本内落盘）
+- shell 非只读命令（重定向、`Set-Content`、`Remove-Item`、装包、起服务等）
+- 网络请求、启动子代理、定时任务、桌面操作、office 文档落盘
+- 未知工具：默认送审
+- 读取工作区之外的路径
 
-## 工作原理
+**免审**
 
-挂在 Harness 的 `tools/pre-execute` 瀑布钩子上，在**任何有副作用的动作**执行前插入一次复核：
+- 纯读取，且路径在工作区内
+- 只读 shell 白名单（`Get-Content`、`git log` 等）
+
+## 四、使用方式
+
+如需放行，请在指令中同时给出三项信息：**做什么、在哪里、为什么**。
 
 ```
-行为类工具（写文件 / shell 非只读 / 装包 / 起服务 / 网络 /
-            派子代理 / 定时任务 / 桌面操作 / office 落盘）
-未知工具（默认送审）
-读取工作区外的路径
+允许示例：
+  把 E:\SK\视觉\vision_mem_raw.py 的 --win-sec 默认值改为 60，
+  因为瞬时层窗口按 60 秒计算。
+
+拒绝示例：
+  继续 / 优化一下 / 看着办
+```
+
+如需临时放宽力度，应在指令中写明授权范围；插件不提供配置开关：
+
+```
+本轮允许修改 视觉/ 目录下的任何文件，无需逐条确认。
+本轮仅执行只读操作，无需复核。
+```
+
+被拒绝时，查看插件目录下的 `rule-guard.log`：`event=deny` 的记录包含违反的目标与建议做法。
+
+## 五、工作原理
+
+挂载于 Harness 的 `tools/pre-execute` 瀑布钩子，在动作执行前插入一次模型复核（`temperature=0`）：
+
+```
+有副作用的动作 / 未知工具 / 读取工作区外
         │
         ▼
-   rule-guard 复核（一次模型调用，temperature=0）
+   rule-guard 复核
         │
    ┌────┴─────┐
    ▼          ▼
  allow      deny
    │          │
- 正常执行   返回错误：违反了哪条目标 + 怎么改 → 模型修正后重试
+ 正常执行   返回错误（违反的目标 + 修正建议），模型修正后重试
 ```
 
-复核输入三段：
+复核输入由三部分组成：
 
-1. **项目规则**：`<工作区>/AGENTS.md`、`<工作区>/.dsh/rules.md`（存在才读）
-2. **当前目标**：本会话用户最近一条指令
-3. **待执行调用**：工具名 + 参数 + **脚本正文开头 4KB**（不只命令首行）
+1. **项目规则**：`<工作区>/AGENTS.md`、`<工作区>/.dsh/rules.md`（存在时读取）
+2. **当前目标**：本会话中用户最近一条指令
+3. **待执行动作**：工具名、参数，以及脚本正文开头 4 KiB
 
-判据只有一条：**这一步是否在当前目标内。** 证据不足、无法解析、判决冲突时 **一律拒绝**，
-不做"宁可放过"的推断 —— 这一版没有 fail-open 分支。
+缓存策略：仅复用「拒绝」判决，按会话隔离，有效期 10 分钟。
 
-## 配置规则
+## 六、配置项目规则
 
-在项目根目录建 `AGENTS.md`（或 `.dsh/rules.md`）：
+在工作区根目录建立 `AGENTS.md`（或 `.dsh/rules.md`）：
 
 ```markdown
 # 项目规则
@@ -97,62 +111,54 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
 - 提交前必须通过 npm test
 ```
 
-参考示例：[examples/AGENTS.md](examples/AGENTS.md)
+示例见 [examples/AGENTS.md](examples/AGENTS.md)。未提供规则文件时，仅按当前目标判断。
 
-> 没有规则文件时，只按"当前目标"判断，效果会弱一些。
+## 七、日志
 
-## 日志
-
-插件目录下 `rule-guard.log`，**每行一个 JSON**，便于 grep 和脚本分析：
+插件目录下的 `rule-guard.log`，每行一条 JSON：
 
 ```json
-{"ts":"2026-10-31T11:30:00.000Z","event":"deny","tool":"write","session":"sess-abc","call":"call-12","paths":["src/app.ts"],"digest":"{\"path\":\"src/app.ts\",...}","reason":"该写入不在目标内","fix":"只修改 README"}
-{"ts":"2026-10-31T11:31:02.000Z","event":"deny","tool":"edit","session":"sess-abc","call":"call-13","paths":["src/util.ts"],"digest":"{...}","reason":"复核输出不可解析，按拒绝处理","fix":"把目标说清后重试"}
+{"ts":"2026-10-31T11:30:00.000Z","event":"deny","tool":"write","session":"sess-abc","call":"call-12","paths":["src/app.ts"],"digest":"{\"path\":\"src/app.ts\"}","reason":"该写入不在当前目标内","fix":"只修改 README"}
 ```
 
 | event | 含义 | 关键字段 |
 |---|---|---|
-| `plugin-loaded` | 加载成功 | `version` |
+| `plugin-loaded` | 插件加载完成 | `version` |
 | `allow` | 复核通过 | `tool` `paths` `call` |
-| `deny` | 拦截（含"复核失败/不可解析"—— 这一版一律按拒绝处理） | `reason` `fix` |
-| `skip` | 未复核（免审范围） | `why` |
-| `cache-hit-deny` | 重复的同等动作直接命中缓存拒绝 | `paths` |
+| `deny` | 拒绝（含复核失败与不可解析） | `reason` `fix` |
+| `skip` | 免审，未复核 | `why` |
+| `cache-hit-deny` | 同等动作命中缓存拒绝 | `paths` |
 
-每条记录都带 **工具名、目标文件、会话 ID、调用 ID、参数摘要**，所以事后能精确定位到"哪一轮、哪一个动作、想干什么"。
+每条记录包含工具名、目标路径、会话 ID、调用 ID 与参数摘要，可用于定位到具体轮次与动作。
 
-常用排查：
+常用查询：
 
 ```powershell
-# 最近 5 次拦截
 Select-String '"event":"deny"' rule-guard.log | Select-Object -Last 5
-# 某个文件的全部记录
 Select-String 'src/app.ts' rule-guard.log
 ```
 
-
-## 兼容性
+## 八、兼容性
 
 - DeepSeek Harness ≥ 0.2.x（依赖 `tools/pre-execute`、`ctx.llm`、`workingDirectory` 服务）
 - 已在 DSH Desktop 0.11.1（Harness 0.2.1-rc.2）实测加载
 
-## 成本与限制
+## 九、成本与限制
 
-- 每次送审多一次模型调用：约 2–5 秒延迟 + 少量 token
-- 复核使用**当前会话的模型**，模型越强判定越准
-- 送审面比 0.1.x 大：行为类工具 + 未知工具（默认送审）+ 读工作区外；
-  只有"纯读取且在工作区内"和只读 shell 白名单免审
-- 判决口径是 fail-closed：复核失败、输出不可解析、判决冲突 → 拒绝，
-  所以**模糊指令会被直接拒**（这是刻意的，见上文「当前状态」）
-- 缓存只复用"拒绝"，按会话隔离 10 分钟；不会因为曾被拒就永久拒绝
-- 这是**软约束**：模型仍可能被措辞误导，不要当成安全边界
+- 每次送审增加一次模型调用：约 2–5 秒延迟与少量 token 开销
+- 复核使用当前会话的模型，模型能力越强，判定越准确
+- 送审范围包含行为类工具、未知工具与工作区外读取
+- 判决 fail-closed，表述模糊的指令会被拒绝
+- 缓存仅复用「拒绝」，按会话隔离，10 分钟
+- 属于软约束：模型可能被措辞误导，不应视为安全边界
 
-## 目录结构
+## 十、目录结构
 
 ```
 dsh-rule-guard/
 ├── package.json          # dsh.bundle.patch 元数据
 ├── cordis.patch.yml      # 挂载条目
-├── lib/index.js          # 插件本体（无第三方依赖）
+├── lib/index.js          # 插件实现（无第三方依赖）
 ├── examples/AGENTS.md    # 规则示例
 ├── LICENSE
 └── README.md
@@ -160,4 +166,4 @@ dsh-rule-guard/
 
 ## License
 
-MIT © 2026 YL (韵铃)
+MIT © 2026 YL（韵铃）
