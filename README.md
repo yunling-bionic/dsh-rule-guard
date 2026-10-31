@@ -57,10 +57,13 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
 
 ## 工作原理
 
-挂在 Harness 的 `tools/pre-execute` 瀑布钩子上：
+挂在 Harness 的 `tools/pre-execute` 瀑布钩子上，在**任何有副作用的动作**执行前插入一次复核：
 
 ```
-模型发起 write / edit / str_replace_editor / (pwsh|bash 写文件)
+行为类工具（写文件 / shell 非只读 / 装包 / 起服务 / 网络 /
+            派子代理 / 定时任务 / 桌面操作 / office 落盘）
+未知工具（默认送审）
+读取工作区外的路径
         │
         ▼
    rule-guard 复核（一次模型调用，temperature=0）
@@ -69,16 +72,17 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
    ▼          ▼
  allow      deny
    │          │
- 正常执行   返回错误：违反了哪条规则 / 怎么改 → 模型修正后重试
+ 正常执行   返回错误：违反了哪条目标 + 怎么改 → 模型修正后重试
 ```
 
 复核输入三段：
 
 1. **项目规则**：`<工作区>/AGENTS.md`、`<工作区>/.dsh/rules.md`（存在才读）
 2. **当前目标**：本会话用户最近一条指令
-3. **待执行调用**：工具名 + 参数（超长内容自动截断）
+3. **待执行调用**：工具名 + 参数 + **脚本正文开头 4KB**（不只命令首行）
 
-判定原则是**宁可放过、不可错杀**：证据不足、纯风格差异、无法判断 → 一律放行。
+判据只有一条：**这一步是否在当前目标内。** 证据不足、无法解析、判决冲突时 **一律拒绝**，
+不做"宁可放过"的推断 —— 这一版没有 fail-open 分支。
 
 ## 配置规则
 
@@ -102,25 +106,25 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
 插件目录下 `rule-guard.log`，**每行一个 JSON**，便于 grep 和脚本分析：
 
 ```json
-{"ts":"2026-10-31T11:30:00.000Z","event":"deny","tool":"write","session":"sess-abc","call":"call-12","paths":["src/app.ts"],"digest":"{\"path\":\"src/app.ts\",...}","reason":"改动了未要求的文件","fix":"只修改 README"}
-{"ts":"2026-10-31T11:31:02.000Z","event":"fail-open","tool":"edit","session":"sess-abc","call":"call-13","paths":["src/util.ts"],"digest":"{...}","error":"无法解析复核结果","raw":"模型原始输出…"}
+{"ts":"2026-10-31T11:30:00.000Z","event":"deny","tool":"write","session":"sess-abc","call":"call-12","paths":["src/app.ts"],"digest":"{\"path\":\"src/app.ts\",...}","reason":"该写入不在目标内","fix":"只修改 README"}
+{"ts":"2026-10-31T11:31:02.000Z","event":"deny","tool":"edit","session":"sess-abc","call":"call-13","paths":["src/util.ts"],"digest":"{...}","reason":"复核输出不可解析，按拒绝处理","fix":"把目标说清后重试"}
 ```
 
 | event | 含义 | 关键字段 |
 |---|---|---|
 | `plugin-loaded` | 加载成功 | `version` |
 | `allow` | 复核通过 | `tool` `paths` `call` |
-| `deny` | 拦截 | `reason` `fix` |
-| `fail-open` | 复核异常，已放行 | `error` `raw` `paths` `call` |
-| `skip` | 未复核 | `why`（`no-rules-or-goal` / `no-model-route` / `no-working-directory`） |
+| `deny` | 拦截（含"复核失败/不可解析"—— 这一版一律按拒绝处理） | `reason` `fix` |
+| `skip` | 未复核（免审范围） | `why` |
+| `cache-hit-deny` | 重复的同等动作直接命中缓存拒绝 | `paths` |
 
-每条记录都带 **工具名、目标文件、会话 ID、调用 ID**，所以即使 `fail-open` 也不会出现"只记一句错、事后查不到是谁"的情况。
+每条记录都带 **工具名、目标文件、会话 ID、调用 ID、参数摘要**，所以事后能精确定位到"哪一轮、哪一个动作、想干什么"。
 
 常用排查：
 
 ```powershell
-# 最近 5 次放行异常
-Select-String '"event":"fail-open"' rule-guard.log | Select-Object -Last 5
+# 最近 5 次拦截
+Select-String '"event":"deny"' rule-guard.log | Select-Object -Last 5
 # 某个文件的全部记录
 Select-String 'src/app.ts' rule-guard.log
 ```
@@ -133,10 +137,14 @@ Select-String 'src/app.ts' rule-guard.log
 
 ## 成本与限制
 
-- 每次改代码多一次模型调用：约 2–5 秒延迟 + 少量 token
+- 每次送审多一次模型调用：约 2–5 秒延迟 + 少量 token
 - 复核使用**当前会话的模型**，模型越强判定越准
-- 只看"改代码"类工具；纯读取、搜索不触发
-- 这是**软约束**：模型仍可能改写措辞绕过判断，不要当成安全边界
+- 送审面比 0.1.x 大：行为类工具 + 未知工具（默认送审）+ 读工作区外；
+  只有"纯读取且在工作区内"和只读 shell 白名单免审
+- 判决口径是 fail-closed：复核失败、输出不可解析、判决冲突 → 拒绝，
+  所以**模糊指令会被直接拒**（这是刻意的，见上文「当前状态」）
+- 缓存只复用"拒绝"，按会话隔离 10 分钟；不会因为曾被拒就永久拒绝
+- 这是**软约束**：模型仍可能被措辞误导，不要当成安全边界
 
 ## 目录结构
 
