@@ -4,6 +4,8 @@
 
 给 DeepSeek Harness 加一道「改代码前的二次复核」：每次写文件前，先拿**项目规则 + 你最近一条指令 + 待执行内容**过一遍模型，不合规直接拦下并给出修正建议。
 
+仓库：<https://github.com/yunling-bionic/dsh-rule-guard>
+
 ## 解决什么问题
 
 Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构、把产物文件一起改了、跑偏目标。
@@ -34,6 +36,15 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
 3. **待执行调用**：工具名 + 参数（超长内容自动截断）
 
 判定原则是**宁可放过、不可错杀**：证据不足、纯风格差异、无法判断 → 一律放行。
+
+## 安装（从 GitHub）
+
+```
+git clone https://github.com/yunling-bionic/dsh-rule-guard.git
+copy /Y dsh-rule-guard "<profile>\plugins\dsh-rule-guard"
+```
+
+之后照下面的「安装（DSH Desktop）」建链接、注册 bundles、重启。
 
 ## 安装（DSH Desktop）
 
