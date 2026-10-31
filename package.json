@@ -8,13 +8,16 @@
     ".": {
       "default": "./lib/index.js"
     },
+    "./client": "./client.js",
     "./package.json": "./package.json"
   },
   "files": [
     "lib",
+    "client.js",
     "cordis.patch.yml",
     "examples",
     "README.md",
+    "RULES.md",
     "LICENSE"
   ],
   "keywords": [
@@ -34,6 +37,9 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
     }
   }
 }

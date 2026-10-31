@@ -127,8 +127,9 @@ Agent 在长任务中容易产生范围外动作：改动未被要求的文件�
 
 示例见 [examples/AGENTS.md](examples/AGENTS.md)。未提供规则文件时，仅按当前目标判断。
 
-**首次安装提示**：插件首次加载时，会在标准插件数据目录生成 `RULES.md` 与 `INSTALL-NOTICE.txt`，
-向 `rule-guard.log` 记一条 `first-run-notice`，并通过 stderr 输出中英文提示：
+**首次安装提示**：首次加载时通过**客户端横幅**提示（可关闭，只弹一次），
+同时在标准插件数据目录生成 `RULES.md` 与 `INSTALL-NOTICE.txt`，
+并向 `rule-guard.log` 记一条 `first-run-notice`：
 
 ```
 标准插件数据目录（与 dshHomePath('rule-guard') 等价）
@@ -139,12 +140,16 @@ Agent 在长任务中容易产生范围外动作：改动未被要求的文件�
       .first-run-done     首次标记（存在即不再提示）
 ```
 
-> 可以自己定规则，方式两种：自己手动编辑规则文件，或根据需要直接让 AI 改规则文件。
+横幅由客户端入口 `client.js` 渲染（注册于 slot `shell.overlay`），内容为：
+
+> rule-guard 已安装 · 规则可以自己定
+> 可以自己定规则，方式两种：一是自己手动编辑规则文件；二是直接让 AI 按需要修改这个规则文件。
 >
 > You can define your own rules. Two ways: edit the rule file by hand, or simply ask the AI
 > to modify that rule file as needed.
 
 规则文件放在数据目录而非安装包内，因此**升级插件不会覆盖用户改动**。
+横幅关闭状态记在浏览器 `localStorage`（键 `dsh-rule-guard:first-run-notice:v1`），刷新后不再弹出。
 
 ## 七、日志
 
