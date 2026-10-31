@@ -98,9 +98,13 @@ Agent 在长任务中容易产生范围外动作：改动未被要求的文件�
 
 缓存策略：仅复用「拒绝」判决，按会话隔离，有效期 10 分钟。
 
-## 六、配置项目规则
+## 六、自定义规则
 
-在工作区根目录建立 `AGENTS.md`（或 `.dsh/rules.md`）：
+规则文件由用户掌握，插件只负责读取与执行。定义方式有两种，效果相同：
+
+**方式一：手动编辑**
+
+在工作区根目录建立并维护 `AGENTS.md`（或 `.dsh/rules.md`）：
 
 ```markdown
 # 项目规则
@@ -111,7 +115,25 @@ Agent 在长任务中容易产生范围外动作：改动未被要求的文件�
 - 提交前必须通过 npm test
 ```
 
+**方式二：让 AI 按需修改**
+
+直接要求 AI 修改该规则文件即可，例如：
+
+```
+把"提交前必须通过 npm test"加进 AGENTS.md 的项目规则里
+```
+
+两种方式的共同前提：规则文件是数据，可以进版本库、可以回顾改动；插件本身不含硬编码的项目规则。
+
 示例见 [examples/AGENTS.md](examples/AGENTS.md)。未提供规则文件时，仅按当前目标判断。
+
+**首次安装提示**：插件首次加载时会在 `rule-guard.log` 写入一条 `first-run-notice`，
+并生成 `INSTALL-NOTICE.txt`，中英文说明上述两种自定义规则的方式：
+
+> 可以自己定规则，方式两种：自己手动编辑规则文件，或根据需要直接让 AI 改规则文件。
+>
+> You can define your own rules. Two ways: edit the rule file by hand, or simply ask the AI
+> to modify that rule file as needed.
 
 ## 七、日志
 
