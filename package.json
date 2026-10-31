@@ -1,0 +1,39 @@
+{
+  "name": "dsh-rule-guard",
+  "version": "0.1.0",
+  "description": "DSH plugin: review every code-modifying tool call against project rules and the current goal before it runs.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "guardrail",
+    "rules",
+    "agent",
+    "review"
+  ],
+  "license": "MIT",
+  "author": "YL (韵铃)",
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

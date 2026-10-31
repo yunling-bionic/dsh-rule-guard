@@ -1,0 +1,5 @@
+# dsh-rule-guard bundle patch
+# 挂载改代码前的二次复核钩子。
+- insert:
+    - id: rule-guard
+      name: dsh-rule-guard
