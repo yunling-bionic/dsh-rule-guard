@@ -1,6 +1,6 @@
 {
   "name": "dsh-rule-guard",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "DSH plugin: review every code-modifying tool call against project rules and the current goal before it runs.",
   "type": "module",
   "main": "lib/index.js",
