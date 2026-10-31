@@ -6,6 +6,8 @@
 
 仓库：<https://github.com/yunling-bionic/dsh-rule-guard>
 
+中文 · [English](README.en.md)
+
 - 版本：0.4.0
 - 依赖：DeepSeek Harness ≥ 0.2.x
 - 许可：MIT

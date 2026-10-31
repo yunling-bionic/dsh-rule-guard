@@ -16,7 +16,9 @@
     "client.js",
     "cordis.patch.yml",
     "examples",
+    "scripts",
     "README.md",
+    "README.en.md",
     "RULES.md",
     "LICENSE"
   ],
