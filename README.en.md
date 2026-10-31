@@ -1,13 +1,27 @@
 # dsh-rule-guard
 
-> A DSH (DeepSeek Harness) plugin that reviews every side-effecting tool call against the project
-> rules and the current goal **before** it executes, and denies anything outside that scope.
+[![version](https://img.shields.io/badge/version-0.4.0-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-purple)](https://github.com/deepseek-ai)
+
+> **Agents keep changing files you never asked about.** This plugin stops them before they do,
+> and hands back *which goal was violated and how to fix it*.
+
+It inserts one review step before any side-effecting tool call: project rules + current goal +
+pending action → decide whether the action is within the goal; if not, deny and tell the model
+what to correct.
+
+![rule-guard deny example](assets/demo-deny.jpg)
+
+The screenshot is a real run log: two consecutive `Error: [rule-guard] ...` denials — one for
+going beyond the instructed scope, one for treating a user's hypothetical as an execution request.
 
 [中文文档](README.md) · English
 
 - Version: 0.4.0
 - Requires: DeepSeek Harness ≥ 0.2.x
 - License: MIT
+- Install: `dsh plugin add dsh-rule-guard` (or from a local checkout `dsh plugin add ./dsh-rule-guard`)
 
 ## 1. Purpose
 

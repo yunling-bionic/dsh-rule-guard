@@ -1,16 +1,24 @@
 # dsh-rule-guard
 
-> A DSH (DeepSeek Harness) plugin that reviews every side-effecting tool call against the project rules and the current goal before it executes, and denies anything outside that scope.
+[![version](https://img.shields.io/badge/version-0.4.0-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-purple)](https://github.com/deepseek-ai)
+
+> **Agent 老是改你没让它改的文件。** 这个插件在它动手之前拦住，并把「违反了哪条目标、该怎么改」直接回给它。
 
 在工具真正执行之前插入一次复核：取**项目规则 + 当前目标 + 待执行动作**，判断该动作是否在当前目标内；不在则拒绝执行，并把违反的目标与修正建议回给模型。
 
-仓库：<https://github.com/yunling-bionic/dsh-rule-guard>
+![rule-guard 拦截示例](assets/demo-deny.jpg)
+
+上图为实际运行记录：连续两次 `Error: [rule-guard] 这一步不在当前目标之内` ——
+一次因为改动范围超出指令，一次因为把用户指令里的试探当成了执行请求。
 
 中文 · [English](README.en.md)
 
 - 版本：0.4.0
 - 依赖：DeepSeek Harness ≥ 0.2.x
 - 许可：MIT
+- 安装：`dsh plugin add dsh-rule-guard`（或从源码目录 `dsh plugin add ./dsh-rule-guard`）
 
 ## 一、设计目标
 
