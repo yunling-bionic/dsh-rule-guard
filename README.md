@@ -56,13 +56,32 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
 
 ## 日志
 
-插件目录下 `rule-guard.log`：
+插件目录下 `rule-guard.log`，**每行一个 JSON**，便于 grep 和脚本分析：
 
-| 记录 | 含义 |
-|---|---|
-| `plugin loaded` | 加载成功 |
-| `DENY <tool>: <reason>` | 拦截了某次改动 |
-| `FAIL-OPEN <tool>: <error>` | 复核环节异常，已放行（不阻塞工作） |
+```json
+{"ts":"2026-10-31T11:30:00.000Z","event":"deny","tool":"write","session":"sess-abc","call":"call-12","paths":["src/app.ts"],"digest":"{\"path\":\"src/app.ts\",...}","reason":"改动了未要求的文件","fix":"只修改 README"}
+{"ts":"2026-10-31T11:31:02.000Z","event":"fail-open","tool":"edit","session":"sess-abc","call":"call-13","paths":["src/util.ts"],"digest":"{...}","error":"无法解析复核结果","raw":"模型原始输出…"}
+```
+
+| event | 含义 | 关键字段 |
+|---|---|---|
+| `plugin-loaded` | 加载成功 | `version` |
+| `allow` | 复核通过 | `tool` `paths` `call` |
+| `deny` | 拦截 | `reason` `fix` |
+| `fail-open` | 复核异常，已放行 | `error` `raw` `paths` `call` |
+| `skip` | 未复核 | `why`（`no-rules-or-goal` / `no-model-route` / `no-working-directory`） |
+
+每条记录都带 **工具名、目标文件、会话 ID、调用 ID**，所以即使 `fail-open` 也不会出现"只记一句错、事后查不到是谁"的情况。
+
+常用排查：
+
+```powershell
+# 最近 5 次放行异常
+Select-String '"event":"fail-open"' rule-guard.log | Select-Object -Last 5
+# 某个文件的全部记录
+Select-String 'src/app.ts' rule-guard.log
+```
+
 
 ## 兼容性
 
