@@ -37,55 +37,6 @@ Agent 经常"顺手"做你没要求的事：改范围外的文件、顺手重构
 
 判定原则是**宁可放过、不可错杀**：证据不足、纯风格差异、无法判断 → 一律放行。
 
-## 安装（从 GitHub）
-
-```
-git clone https://github.com/yunling-bionic/dsh-rule-guard.git
-copy /Y dsh-rule-guard "<profile>\plugins\dsh-rule-guard"
-```
-
-之后照下面的「安装（DSH Desktop）」建链接、注册 bundles、重启。
-
-## 安装（DSH Desktop）
-
-以 `%APPDATA%\dsh-desktop\harness\profiles\web` 为例：
-
-**1. 放包**
-
-```
-<profile>\plugins\dsh-rule-guard\      ← 本仓库内容
-```
-
-**2. 建链接**（管理员 cmd）
-
-```bat
-mklink /J "<profile>\node_modules\dsh-rule-guard" "<profile>\plugins\dsh-rule-guard"
-```
-
-**3. 注册到 profile**
-
-编辑 `<profile>\package.json`：
-
-```jsonc
-{
-  "dependencies": {
-    "dsh-rule-guard": "link:./plugins/dsh-rule-guard"
-  },
-  "dsh": {
-    "profile": {
-      "bundles": [
-        // ...原有插件
-        "dsh-rule-guard"
-      ]
-    }
-  }
-}
-```
-
-**4. 重启 DSH Desktop**
-
-`bundles` 在启动时装配，热重载不会生效。
-
 ## 配置规则
 
 在项目根目录建 `AGENTS.md`（或 `.dsh/rules.md`）：
@@ -112,11 +63,6 @@ mklink /J "<profile>\node_modules\dsh-rule-guard" "<profile>\plugins\dsh-rule-gu
 | `plugin loaded` | 加载成功 |
 | `DENY <tool>: <reason>` | 拦截了某次改动 |
 | `FAIL-OPEN <tool>: <error>` | 复核环节异常，已放行（不阻塞工作） |
-
-## 关闭 / 卸载
-
-- **临时关闭**：把 `dsh-rule-guard` 从 profile 的 `bundles` 移除，重启
-- **彻底卸载**：移除 `bundles` / `dependencies` 条目，删掉 `plugins\` 与 `node_modules\` 下的目录
 
 ## 兼容性
 
