@@ -1,6 +1,6 @@
 # dsh-rule-guard
 
-[![version](https://img.shields.io/badge/version-0.4.2-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
+[![version](https://img.shields.io/badge/version-0.4.3-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-purple)](https://github.com/deepseek-ai)
 
@@ -18,7 +18,7 @@ going beyond the instructed scope, one for treating a user's hypothetical as an 
 
 [中文文档](README.md) · English
 
-- Version: 0.4.2
+- Version: 0.4.3
 - Requires: DeepSeek Harness ≥ 0.2.x
 - License: MIT
 - Install: `dsh plugin add dsh-rule-guard` (or from a local checkout `dsh plugin add ./dsh-rule-guard`)

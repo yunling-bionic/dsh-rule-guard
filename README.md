@@ -1,6 +1,6 @@
 # dsh-rule-guard
 
-[![version](https://img.shields.io/badge/version-0.4.2-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
+[![version](https://img.shields.io/badge/version-0.4.3-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-purple)](https://github.com/deepseek-ai)
 
@@ -15,7 +15,7 @@
 
 中文 · [English](README.en.md)
 
-- 版本：0.4.2
+- 版本：0.4.3
 - 依赖：DeepSeek Harness ≥ 0.2.x
 - 许可：MIT
 - 安装：`dsh plugin add dsh-rule-guard`（或从源码目录 `dsh plugin add ./dsh-rule-guard`）
