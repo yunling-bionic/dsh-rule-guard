@@ -1,6 +1,6 @@
 # dsh-rule-guard
 
-[![version](https://img.shields.io/badge/version-0.4.0-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
+[![version](https://img.shields.io/badge/version-0.4.1-blue)](https://github.com/yunling-bionic/dsh-rule-guard/releases)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-purple)](https://github.com/deepseek-ai)
 
@@ -15,7 +15,7 @@
 
 中文 · [English](README.en.md)
 
-- 版本：0.4.0
+- 版本：0.4.1
 - 依赖：DeepSeek Harness ≥ 0.2.x
 - 许可：MIT
 - 安装：`dsh plugin add dsh-rule-guard`（或从源码目录 `dsh plugin add ./dsh-rule-guard`）
@@ -134,6 +134,16 @@ Agent 在长任务中容易产生范围外动作：改动未被要求的文件�
 ```
 
 两种方式的共同前提：规则文件是数据，可以进版本库、可以回顾改动；插件本身不含硬编码的项目规则。
+
+**规则来源（0.4.1 起三者同时生效，按顺序拼接后送入复核）**
+
+```
+① <工作区>/AGENTS.md          项目自己的规则，可进版本库
+② <工作区>/.dsh/rules.md      同上，二选一即可
+③ <数据目录>/RULES.md          复核机制的通用规则（首次安装生成，可直接改，改了就生效）
+```
+
+> 0.4.0 的问题：第 ③ 个文件只生成、不读取，按提示改了不生效。0.4.1 已修。
 
 示例见 [examples/AGENTS.md](examples/AGENTS.md)。未提供规则文件时，仅按当前目标判断。
 
