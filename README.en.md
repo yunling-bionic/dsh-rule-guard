@@ -89,6 +89,14 @@ This turn is read-only; no review needed.
 When an action is denied, inspect `rule-guard.log`: entries with `event=deny` carry the violated
 goal and a suggested correction.
 
+What a denial looks like in the session (the reason is shown inline, no log digging needed):
+
+![rule-guard deny example](assets/deny-log.png)
+
+A real interception: an edit was judged outside the current goal, and the reason names the exact
+rule sentence that was violated (`改动只碰被要求的文件。不做顺手重构，不改无关文件……`). The export
+right after it was blocked for the same reason.
+
 ## 5. How it works
 
 Mounted on the harness `tools/pre-execute` waterfall hook, inserting one model review
