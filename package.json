@@ -34,6 +34,14 @@
   ],
   "license": "MIT",
   "author": "YL (韵铃)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yunling-bionic/dsh-rule-guard.git"
+  },
+  "homepage": "https://github.com/yunling-bionic/dsh-rule-guard#readme",
+  "bugs": {
+    "url": "https://github.com/yunling-bionic/dsh-rule-guard/issues"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -43,6 +51,12 @@
     },
     "client": {
       "platform": "web"
+    },
+    "install": {
+      "preferred": "tarball",
+      "tarball": "https://codeload.github.com/yunling-bionic/dsh-rule-guard/tar.gz/refs/heads/main",
+      "zip": "https://codeload.github.com/yunling-bionic/dsh-rule-guard/zip/refs/heads/main",
+      "git": "https://github.com/yunling-bionic/dsh-rule-guard.git"
     }
   }
 }
